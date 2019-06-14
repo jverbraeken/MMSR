@@ -35,22 +35,24 @@ def first_nonzero(arr, axis, invalid_val=-1):
 
 
 B = 4
-R = 6
+R = 3
 signatures = np.empty([B * R, newdata2.shape[1]], dtype=int)
 liked_recipe_signatures = np.empty([B * R, len(liked_recipes)], dtype=int)
 for i in range(B * R):
-    np.random.seed(i)
-    shuffled_recipes = [np.array([np.copy(newdata2[:, recipe])]).T for recipe in range(newdata2.shape[1])]
-    shuffled_liked_recipes = [np.array([np.copy(newdata2[:, recipe])]).T for recipe in liked_recipes]
-    for recipe in shuffled_recipes:
+    for recipe in range(newdata2.shape[1]):
         np.random.seed(i)
-        np.random.shuffle(recipe)
-    for recipe in shuffled_liked_recipes:
-        np.random.seed(i)
-        np.random.shuffle(recipe)
-    signatures[i] = [first_nonzero(shuffled_recipes[recipe], 0).item(0) for recipe in range(len(shuffled_recipes))]
+        np.random.shuffle(newdata2[:, recipe])
+    # shuffled_liked_recipes = [np.array([np.copy(newdata2[:, recipe])]).T for recipe in liked_recipes]
+    # shuffled_recipes = [np.array([np.copy(newdata2[:, recipe])]).T for recipe in range(newdata2.shape[1])]
+    # for recipe in shuffled_recipes:
+    #     np.random.seed(i)
+    #     np.random.shuffle(recipe)
+    # for recipe in shuffled_liked_recipes:
+    #     np.random.seed(i)
+    #     np.random.shuffle(recipe)
+    signatures[i] = [first_nonzero(newdata2[:, recipe], 0).item(0) for recipe in range(newdata2.shape[1])]
     liked_recipe_signatures[i] = \
-        [first_nonzero(shuffled_liked_recipes[recipe], 0).item(0) for recipe in range(len(shuffled_liked_recipes))]
+        [first_nonzero(newdata2[:, recipe], 0).item(0) for recipe in liked_recipes]
 
 print("Signatures generated")
 
@@ -70,7 +72,7 @@ candidate_pairs = []
 for band, liked_recipe_buckets in enumerate(liked_recipe_buckets_per_band):
     for (bucket, liked_recipe_id) in liked_recipe_buckets:
         for candidate in buckets_per_band[band][bucket]:
-            if (liked_recipe_id, candidate) not in candidate_pairs and (candidate, liked_recipe_id) not in candidate_pairs:
+            # if (liked_recipe_id, candidate) not in candidate_pairs and (candidate, liked_recipe_id) not in candidate_pairs:
                 candidate_pairs.append((liked_recipe_id, candidate))
 
 print("Candidate pairs generated")
