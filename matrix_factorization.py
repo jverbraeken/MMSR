@@ -56,7 +56,7 @@ class MatrixFactorization(surprise.AlgoBase):
             top_n[i[1]].append((i[3], i[2], recipes.iloc[i[1]]))
         top_n=sorted(top_n.items(), key = lambda k:k[1], reverse=True)
         #top_n[].sort(key = lambda x: x[3], reverse = True)
-        return top_n
+        return top_n[:n]
 
 recipes = pd.read_csv('epi_r.csv')
 unique_recipes = recipes.title
@@ -93,9 +93,6 @@ for train,test in kSplit.split(data):
     bestModel.fit(train)
     predictions = bestModel.test(test)
     accuracy = surprise.accuracy.rmse(predictions,verbose=True)
-
-    #for id_value in bestModel.trainset.all_items():
-    #    map_id_to_raw[id_value].append(bestModel.trainset.to_raw_iid(id_value))
     
     for i in range(0, 10):
         estimated_rating = bestModel.predict(user_recipe.userid.iloc[i],user_recipe.recipeid.iloc[i], r_ui=user_recipe.rating.iloc[i])
@@ -104,11 +101,8 @@ for train,test in kSplit.split(data):
     #recommendation_per_fold[accuracy].append(top_n)
 
 print('Best prediction with RMSE: ', min(recommendation_per_fold))
-#print(
-hoi = bestModel.top_n_recommendations(5, recommendation_per_fold[min(recommendation_per_fold)][0], unique_recipes)#, '\n\n')
-#print('Recommendation for user ', userid)
-#for i in recommendation_per_fold[min(recommendation_per_fold)][1]:
-#    print(i)
+recommendations = bestModel.top_n_recommendations(N, recommendation_per_fold[min(recommendation_per_fold)][0], unique_recipes)
+print('Recommendation for user:\n', recommendations)
 
 
 
