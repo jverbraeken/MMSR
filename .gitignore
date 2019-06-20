@@ -4,6 +4,8 @@
 *.pickle
 *.nyc
 *.seg
+*.npy
+*.pyc
 
 # User-specific stuff
 .idea/**/workspace.xml
