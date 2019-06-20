@@ -1,6 +1,9 @@
 *
 !/**/
 !*.*
+*.pickle
+*.nyc
+*.seg
 
 # User-specific stuff
 .idea/**/workspace.xml
