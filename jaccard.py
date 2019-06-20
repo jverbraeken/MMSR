@@ -20,10 +20,10 @@ def get_discounted_recipes() -> List[Tuple[str, float]]:
         recipes = json.load(file)
 
     map_recipe_to_ingredients = {}
-    for recipe in recipes:
+    for i, recipe in enumerate(recipes):
         if recipe == {}:
             continue
-        map_recipe_to_ingredients[recipe["title"]] = recipe["ingredients"]
+        map_recipe_to_ingredients[i] = recipe["ingredients"]
 
     ix = index.open_dir("indexdir")
 
@@ -35,7 +35,7 @@ def get_discounted_recipes() -> List[Tuple[str, float]]:
 
         for result in results:
             recipe = result["title"]
-            ingredients = map_recipe_to_ingredients[recipe]
+            ingredients = map_recipe_to_ingredients[int(recipe)]
             map_recipe_to_jaccard[recipe] = get_jaccard_similarity(ingredients, offers)
     return map_recipe_to_jaccard
     #result = sorted(map_recipe_to_jaccard, key=map_recipe_to_jaccard.get, reverse=True)
@@ -44,3 +44,4 @@ def get_discounted_recipes() -> List[Tuple[str, float]]:
 
 if __name__ == '__main__':
     get_discounted_recipes()
+    print("Finished")

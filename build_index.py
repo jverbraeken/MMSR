@@ -19,14 +19,14 @@ with open("full_format_recipes.json") as file:
 writer = ix.writer()
 num_recipes = len(recipes)
 i = 0
-for recipe in recipes:
+for i, recipe in enumerate(recipes):
     if i % 1000 == 0:
         print("Building the index: " + str(round(i * 100.0 / num_recipes)) + "%\n")
     if recipe == {}:
         continue
     if "title" not in recipe or "ingredients" not in recipe:
         b = 5
-    writer.add_document(title=recipe["title"], ingredients=" ".join(recipe["ingredients"]))
+    writer.add_document(title=str(i), ingredients=" ".join(recipe["ingredients"]))
     i = i + 1
 print("Committing changes...\n")
 writer.commit()
