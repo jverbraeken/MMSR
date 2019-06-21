@@ -73,6 +73,7 @@ class MatrixFactorization(surprise.AlgoBase):
         return top_n[:n]
 
 # Find optimal parameters based on the Grid Search
+# Due to the long runtime, we have already added the optimal parameters for this model
 gridsearch = surprise.model_selection.GridSearchCV(MatrixFactorization, 
                 param_grid={'learning_rate':[0.0005], 'num_iterations':[200],
                     'num_factors':[10]},measures=['rmse'], cv=5)
