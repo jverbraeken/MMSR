@@ -1,6 +1,6 @@
-import json
 import pickle
 from multiprocessing import Process, Manager
+from os import path
 from typing import List, Tuple
 
 import math
@@ -92,21 +92,32 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
     return values
 
 
+def get_sorted_similarities() -> List[Tuple]:
+    similarities_file = "similarities_" + str(B) + "_" + str(R) + "_" + str(num_buckets_per_band) + "_range1000"
+    if path.isfile(similarities_file):
+        with open(similarities_file, 'rb') as file:
+            similarities = pickle.load(file)
+    else:
+        candidate_similar_recipes = get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R,
+                                                                  num_buckets_per_band)
+        similarities = get_similarity_between_candidates_pairs(list(candidate_similar_recipes), recipe_matrix)
+        with open(similarities_file, 'wb') as file:
+            pickle.dump(similarities, file)
+    sorted_similarities = sorted(similarities, key=lambda tuple: tuple[2], reverse=True)
+    return sorted_similarities
+
+
 if __name__ == '__main__':
     liked_recipes = get_liked_recipes()
     recipe_matrix = get_recipe_matrix()
+    B = 4
+    R = 6
+    num_buckets_per_band = 25000000
 
     discounted_recipes = get_discounted_recipes()
-    candidate_similar_recipes = get_candidate_similar_recipes(recipe_matrix, liked_recipes)
     # with open("candidate_pairs_1_24.pickle", 'rb') as f:
     #     candidate_similar_recipes = pickle.load(f)
 
     # liked_candidate_similar_recipes = [recipe for recipe in candidate_similar_recipes if
     #                                    recipe[0] in liked_recipes or recipe[1] in liked_recipes]
-    similarities = get_similarity_between_candidates_pairs(list(candidate_similar_recipes), recipe_matrix)
-    caching = True
-    if caching:
-        with open("similarities_4_6_25000000_range1000", 'wb') as file:
-            pickle.dump(similarities, file)
-    sorted_similarities = sorted(similarities, key=lambda tuple: tuple[2], reverse=True)
-    sorted_similarities
+    sorted_similarities = get_sorted_similarities()

@@ -37,9 +37,9 @@ def get_discounted_recipes() -> List[Tuple[str, float]]:
             recipe = result["title"]
             ingredients = map_recipe_to_ingredients[int(recipe)]
             map_recipe_to_jaccard[recipe] = get_jaccard_similarity(ingredients, offers)
-    return map_recipe_to_jaccard
-    #result = sorted(map_recipe_to_jaccard, key=map_recipe_to_jaccard.get, reverse=True)
-    #return [(recipe, map_recipe_to_jaccard[recipe]) for recipe in result]
+    # return map_recipe_to_jaccard
+    result = sorted(map_recipe_to_jaccard, key=map_recipe_to_jaccard.get, reverse=True)
+    return [(recipe, map_recipe_to_jaccard[recipe]) for recipe in result]
 
 
 if __name__ == '__main__':

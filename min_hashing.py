@@ -12,12 +12,7 @@ def _first_nonzero(arr, axis, invalid_val=-1):
     return np.where(mask.any(axis=axis), mask.argmax(axis=axis), invalid_val)
 
 
-def get_candidate_similar_recipes(recipe_matrix, liked_recipes) -> Set[Tuple]:
-    # newdata2 = np.array([[0, 0, 0, 1, 0, 1],[0, 0, 0, 0, 0, 1]])
-    # newdata2 = newdata2.transpose()
-
-    B = 4  # Higher => more results but slower
-    R = 6  # Higher => less but more relevant results
+def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_buckets_per_band) -> Set[Tuple]:
     signatures_file = "signatures_" + str(B) + "_" + str(R) + ".npy"
     if path.isfile(signatures_file):
         signatures = np.load(signatures_file)
@@ -44,16 +39,15 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes) -> Set[Tuple]:
         np.save(signatures_file, signatures)
     print("Signatures generated")
 
-    NUM_BUCKETS_PER_BAND = 25000000
-    recipe_per_bucket_per_band_file = "recipe_per_bucket_per_band_" + str(B) + "_" + str(R) + "_" + str(NUM_BUCKETS_PER_BAND)
+    recipe_per_bucket_per_band_file = "recipe_per_bucket_per_band_" + str(B) + "_" + str(R) + "_" + str(num_buckets_per_band)
     if path.isfile(recipe_per_bucket_per_band_file):
         with open(recipe_per_bucket_per_band_file, 'rb') as file:
             recipe_per_bucket_per_band = pickle.load(file)
     else:
-        recipe_per_bucket_per_band = [[[] for _ in range(NUM_BUCKETS_PER_BAND)] for _ in range(B)]
+        recipe_per_bucket_per_band = [[[] for _ in range(num_buckets_per_band)] for _ in range(B)]
         for band in range(B):
             for i, column in enumerate(signatures.T):
-                recipe_per_bucket_per_band[band][hash(tuple(column[band * R: band * R + R])) % NUM_BUCKETS_PER_BAND].append(i)
+                recipe_per_bucket_per_band[band][hash(tuple(column[band * R: band * R + R])) % num_buckets_per_band].append(i)
         with open(recipe_per_bucket_per_band_file, 'wb') as file:
             pickle.dump(recipe_per_bucket_per_band, file)
     print("Buckets per band / liked recipe buckets per band generated")
@@ -65,7 +59,7 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes) -> Set[Tuple]:
     for band in range(B):
         for i, signature in enumerate(liked_recipe_signatures.T):
             liked_recipe_buckets_per_band[band].append(
-                (hash(tuple(signature[band * R: band * R + R])) % NUM_BUCKETS_PER_BAND, liked_recipes[i]))
+                (hash(tuple(signature[band * R: band * R + R])) % num_buckets_per_band, liked_recipes[i]))
 
     candidate_pairs = set()
     for band, liked_recipe_buckets in enumerate(liked_recipe_buckets_per_band):
@@ -100,4 +94,4 @@ if __name__ == '__main__':
                       "alaska",
                       "alcoholic"], axis=1)
     recipe_matrix = data.transpose().as_matrix()
-    get_candidate_similar_recipes(recipe_matrix, liked_recipes)
+    get_candidate_similar_recipes(recipe_matrix, liked_recipes, 4, 6, 25000000)
