@@ -92,7 +92,7 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
     return values
 
 
-def get_sorted_similarities() -> List[Tuple]:
+def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R, num_buckets_per_band) -> List[Tuple]:
     similarities_file = "similarities_" + str(B) + "_" + str(R) + "_" + str(num_buckets_per_band) + "_range1000"
     if path.isfile(similarities_file):
         with open(similarities_file, 'rb') as file:
@@ -115,9 +115,4 @@ if __name__ == '__main__':
     num_buckets_per_band = 25000000
 
     discounted_recipes = get_discounted_recipes()
-    # with open("candidate_pairs_1_24.pickle", 'rb') as f:
-    #     candidate_similar_recipes = pickle.load(f)
-
-    # liked_candidate_similar_recipes = [recipe for recipe in candidate_similar_recipes if
-    #                                    recipe[0] in liked_recipes or recipe[1] in liked_recipes]
-    sorted_similarities = get_sorted_similarities()
+    most_similar_recipes_to_liked_recipes = get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R, num_buckets_per_band)
