@@ -10,7 +10,16 @@ def get_jaccard_similarity(list1: List, list2: List) -> float:
     for elem1 in list1:
         if any(elem2 in elem1 for elem2 in list2):
             count += 1
-    return count / (len(list1) + len(list2) - count)
+    return float(count) / (len(list1) + len(list2) - count)
+
+
+def get_relative_similarity(list1: List, list2: List) -> float:
+    count = 0
+    for elem1 in list1:
+        for elem2 in list2:
+            if elem2 in elem1:
+                count += 1
+    return float(count) / len(list1)
 
 
 def get_discounted_recipes() -> List[Tuple[str, float]]:
@@ -36,12 +45,12 @@ def get_discounted_recipes() -> List[Tuple[str, float]]:
         for result in results:
             recipe = result["title"]
             ingredients = map_recipe_to_ingredients[int(recipe)]
-            map_recipe_to_jaccard[recipe] = get_jaccard_similarity(ingredients, offers)
+            map_recipe_to_jaccard[recipe] = get_relative_similarity(ingredients, offers)
     # return map_recipe_to_jaccard
     result = sorted(map_recipe_to_jaccard, key=map_recipe_to_jaccard.get, reverse=True)
     return [(recipe, map_recipe_to_jaccard[recipe]) for recipe in result]
 
 
 if __name__ == '__main__':
-    get_discounted_recipes()
+    result = get_discounted_recipes()
     print("Finished")
