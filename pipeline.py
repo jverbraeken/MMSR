@@ -10,24 +10,24 @@ from jaccard import get_discounted_recipes
 from min_hashing import get_candidate_similar_recipes
 
 
-def compare_recipes(liked_recipe, candidate_recipe):
-    count_liked = 0
-    count_liked_candidate = 0
+def jaccard_similarity(liked_recipe, candidate_recipe) -> float:
+    A = 0
+    B = 0
+    AB = 0
     for (e1, e2) in zip(liked_recipe, candidate_recipe):
-        if e1 == 1:
-            count_liked += 1
-            if e2 == 1:
-                count_liked_candidate += 1
-    if count_liked_candidate == 0:
-        return 0
-    return count_liked_candidate / count_liked
+        if e1:
+            A += 1
+        if e2:
+            B += 1
+        if e1 and e2:
+            AB += 1
+    return float(AB) / (A + B - AB)
 
 
 def filter_recipes(recipes, newdata2, i, L):
-    L[i] = list(map(lambda liked_recipe_candidate: (
-        liked_recipe_candidate[0], liked_recipe_candidate[1], compare_recipes(newdata2[:, liked_recipe_candidate[0]],
-                                                                              newdata2[:, liked_recipe_candidate[1]])),
-                    recipes))
+    L[i] = list(map(
+        lambda liked_recipe_candidate: (liked_recipe_candidate[0], liked_recipe_candidate[1], jaccard_similarity(newdata2[:, liked_recipe_candidate[0]], newdata2[:, liked_recipe_candidate[1]]))
+        , recipes))
     print("Finished thread: " + str(i))
 
 
@@ -58,7 +58,7 @@ def get_recipe_matrix() -> List[List[int]]:
     return recipe_matrix
 
 
-def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tuple], recipe_matrix: List[List[int]]):
+def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tuple], recipe_matrix: List[List[int]]) -> List[Tuple[int, int, float]]:
     if len(candidate_similar_recipes) > 10000:
         with Manager() as manager:
             L = manager.dict()
@@ -85,7 +85,7 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
             #     file.write(str([value[2] for value in values]))
     else:
         values = list(map(lambda liked_recipe_candidate: (liked_recipe_candidate[0], liked_recipe_candidate[1],
-                                                          compare_recipes(
+                                                          jaccard_similarity(
                                                               recipe_matrix[:, liked_recipe_candidate[0]],
                                                               recipe_matrix[:, liked_recipe_candidate[1]])),
                           candidate_similar_recipes))
@@ -104,6 +104,8 @@ def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R
         with open(similarities_file, 'wb') as file:
             pickle.dump(similarities, file)
     sorted_similarities = sorted(similarities, key=lambda tuple: tuple[2], reverse=True)
+    with open(similarities_file + "_pretty", 'w') as file:
+        file.write(str(sorted_similarities))
     return sorted_similarities
 
 

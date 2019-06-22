@@ -38,21 +38,14 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_bucket
         np.save(signatures_file, signatures)
     print("Signatures generated")
 
-    recipe_per_bucket_per_band_file = "oempa_recipe_per_bucket_per_band_" + str(B) + "_" + str(R) + "_" + str(num_buckets_per_band)
-    if path.isfile(recipe_per_bucket_per_band_file):
-        with open(recipe_per_bucket_per_band_file, 'rb') as file:
-            recipe_per_bucket_per_band = pickle.load(file)
-    else:
-        recipe_per_bucket_per_band = [{} for _ in range(B)]
-        for band in range(B):
-            for i, column in enumerate(signatures.T):
-                bucket = hash(tuple(column[band * R: band * R + R]))
-                if bucket in recipe_per_bucket_per_band[band]:
-                    recipe_per_bucket_per_band[band][bucket].append(i)
-                else:
-                    recipe_per_bucket_per_band[band][bucket] = [i]
-        with open(recipe_per_bucket_per_band_file, 'wb') as file:
-            pickle.dump(recipe_per_bucket_per_band, file)
+    recipe_per_bucket_per_band = [{} for _ in range(B)]
+    for band in range(B):
+        for i, column in enumerate(signatures.T):
+            bucket = hash(tuple(column[band * R: band * R + R]))
+            if bucket in recipe_per_bucket_per_band[band]:
+                recipe_per_bucket_per_band[band][bucket].append(i)
+            else:
+                recipe_per_bucket_per_band[band][bucket] = [i]
     print("Buckets per band / liked recipe buckets per band generated")
 
     liked_recipe_signatures = np.empty([B * R, len(liked_recipes)], dtype=int)
@@ -67,7 +60,7 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_bucket
     for band, liked_recipe_buckets in enumerate(liked_recipe_buckets_per_band):
         for i, (bucket, liked_recipe_id) in enumerate(liked_recipe_buckets):
             for candidate in recipe_per_bucket_per_band[band][bucket]:
-                if liked_recipe_id != candidate and (liked_recipe_id, candidate) not in candidate_pairs:
+                if candidate not in liked_recipes and (liked_recipe_id, candidate) not in candidate_pairs:
                     candidate_pairs.add((liked_recipe_id, candidate))
 
     print("Candidate pairs generated")
