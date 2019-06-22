@@ -1,4 +1,5 @@
 import pickle
+from collections import defaultdict
 from os import path
 from typing import Set, Tuple
 
@@ -38,14 +39,11 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_bucket
         np.save(signatures_file, signatures)
     print("Signatures generated")
 
-    recipe_per_bucket_per_band = [{} for _ in range(B)]
+    recipe_per_bucket_per_band = [defaultdict(list) for _ in range(B)]
     for band in range(B):
         for i, column in enumerate(signatures.T):
             bucket = hash(tuple(column[band * R: band * R + R]))
-            if bucket in recipe_per_bucket_per_band[band]:
-                recipe_per_bucket_per_band[band][bucket].append(i)
-            else:
-                recipe_per_bucket_per_band[band][bucket] = [i]
+            recipe_per_bucket_per_band[band][bucket].append(i)
     print("Buckets per band / liked recipe buckets per band generated")
 
     liked_recipe_signatures = np.empty([B * R, len(liked_recipes)], dtype=int)
