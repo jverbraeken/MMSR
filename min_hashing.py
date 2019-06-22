@@ -1,4 +1,3 @@
-import json
 import pickle
 from os import path
 from typing import Set, Tuple
@@ -39,15 +38,19 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_bucket
         np.save(signatures_file, signatures)
     print("Signatures generated")
 
-    recipe_per_bucket_per_band_file = "recipe_per_bucket_per_band_" + str(B) + "_" + str(R) + "_" + str(num_buckets_per_band)
+    recipe_per_bucket_per_band_file = "oempa_recipe_per_bucket_per_band_" + str(B) + "_" + str(R) + "_" + str(num_buckets_per_band)
     if path.isfile(recipe_per_bucket_per_band_file):
         with open(recipe_per_bucket_per_band_file, 'rb') as file:
             recipe_per_bucket_per_band = pickle.load(file)
     else:
-        recipe_per_bucket_per_band = [[[] for _ in range(num_buckets_per_band)] for _ in range(B)]
+        recipe_per_bucket_per_band = [{} for _ in range(B)]
         for band in range(B):
             for i, column in enumerate(signatures.T):
-                recipe_per_bucket_per_band[band][hash(tuple(column[band * R: band * R + R])) % num_buckets_per_band].append(i)
+                bucket = hash(tuple(column[band * R: band * R + R]))
+                if bucket in recipe_per_bucket_per_band[band]:
+                    recipe_per_bucket_per_band[band][bucket].append(i)
+                else:
+                    recipe_per_bucket_per_band[band][bucket] = [i]
         with open(recipe_per_bucket_per_band_file, 'wb') as file:
             pickle.dump(recipe_per_bucket_per_band, file)
     print("Buckets per band / liked recipe buckets per band generated")
@@ -58,8 +61,7 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_bucket
     liked_recipe_buckets_per_band = [[] for _ in range(B)]
     for band in range(B):
         for i, signature in enumerate(liked_recipe_signatures.T):
-            liked_recipe_buckets_per_band[band].append(
-                (hash(tuple(signature[band * R: band * R + R])) % num_buckets_per_band, liked_recipes[i]))
+            liked_recipe_buckets_per_band[band].append((hash(tuple(signature[band * R: band * R + R])), liked_recipes[i]))
 
     candidate_pairs = set()
     for band, liked_recipe_buckets in enumerate(liked_recipe_buckets_per_band):
