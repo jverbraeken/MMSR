@@ -6,8 +6,8 @@ from typing import List, Tuple
 import math
 import pandas as pd
 
-from jaccard import get_discounted_recipes
-from min_hashing import get_candidate_similar_recipes
+from system1 import get_discounted_recipes
+from system2 import get_candidate_similar_recipes
 
 
 def jaccard_similarity(liked_recipe, candidate_recipe) -> float:
