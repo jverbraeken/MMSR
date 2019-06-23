@@ -13,7 +13,7 @@ def _first_nonzero(arr, axis, invalid_val=-1):
 
 
 def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R) -> Set[Tuple]:
-    signatures_file = "signatures_" + str(B) + "_" + str(R) + ".npy"
+    signatures_file = "generated/signatures_" + str(B) + "_" + str(R) + ".npy"
     if path.isfile(signatures_file):
         signatures = np.load(signatures_file)
     else:

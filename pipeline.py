@@ -95,7 +95,7 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
 
 
 def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R) -> List[Tuple]:
-    similarities_file = "similarities_" + str(B) + "_" + str(R) + "_range1000"
+    similarities_file = "generated/similarities_" + str(B) + "_" + str(R) + "_range1000"
     if path.isfile(similarities_file):
         with open(similarities_file, 'rb') as file:
             similarities = pickle.load(file)
