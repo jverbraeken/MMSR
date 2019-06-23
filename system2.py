@@ -12,7 +12,7 @@ def _first_nonzero(arr, axis, invalid_val=-1):
     return np.where(mask.any(axis=axis), mask.argmax(axis=axis), invalid_val)
 
 
-def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_buckets_per_band) -> Set[Tuple]:
+def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R) -> Set[Tuple]:
     signatures_file = "signatures_" + str(B) + "_" + str(R) + ".npy"
     if path.isfile(signatures_file):
         signatures = np.load(signatures_file)
@@ -69,7 +69,7 @@ def get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R, num_bucket
 
 if __name__ == '__main__':
     with open("liked_recipes.json") as file:
-        liked_recipes = list(range(5))  # json.load(file)
+        liked_recipes = list(range(1000))  # json.load(file)
     data = pd.read_csv("epi_r.csv")
     data = data.drop(["title",
                       "rating",
@@ -87,4 +87,4 @@ if __name__ == '__main__':
                       "alaska",
                       "alcoholic"], axis=1)
     recipe_matrix = data.transpose().as_matrix()
-    get_candidate_similar_recipes(recipe_matrix, liked_recipes, 4, 6, 25000000)
+    get_candidate_similar_recipes(recipe_matrix, liked_recipes, 1, 24)

@@ -1,6 +1,8 @@
 import pickle
+import time
 from multiprocessing import Process, Manager
 from os import path
+import numpy as np
 from typing import List, Tuple
 
 import math
@@ -59,12 +61,12 @@ def get_recipe_matrix() -> List[List[int]]:
 
 
 def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tuple], recipe_matrix: List[List[int]]) -> List[Tuple[int, int, float]]:
-    if len(candidate_similar_recipes) > 10000:
+    if len(candidate_similar_recipes) > 500000:
         with Manager() as manager:
             L = manager.dict()
             processes = []
             print("Starting processes")
-            NUM_PROCESSES = 8
+            NUM_PROCESSES = 2
             for i in range(NUM_PROCESSES):
                 print("Starting process: " + str(i))
                 p = Process(target=filter_recipes, args=(candidate_similar_recipes[
@@ -92,29 +94,42 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
     return values
 
 
-def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R, num_buckets_per_band) -> List[Tuple]:
-    similarities_file = "similarities_" + str(B) + "_" + str(R) + "_" + str(num_buckets_per_band) + "_range1000"
+def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R) -> List[Tuple]:
+    similarities_file = "similarities_" + str(B) + "_" + str(R) + "_range1000"
     if path.isfile(similarities_file):
         with open(similarities_file, 'rb') as file:
             similarities = pickle.load(file)
     else:
-        candidate_similar_recipes = get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R,
-                                                                  num_buckets_per_band)
+        start = time.time()
+        candidate_similar_recipes = get_candidate_similar_recipes(recipe_matrix, liked_recipes, B, R)
+        print("Time to get candidate similar recipes: " + str(time.time() - start))
+        start = time.time()
         similarities = get_similarity_between_candidates_pairs(list(candidate_similar_recipes), recipe_matrix)
+        print("Time to calculate similarity between all candidate pairs: " + str(time.time() - start))
         with open(similarities_file, 'wb') as file:
             pickle.dump(similarities, file)
     sorted_similarities = sorted(similarities, key=lambda tuple: tuple[2], reverse=True)
-    with open(similarities_file + "_pretty", 'w') as file:
-        file.write(str(sorted_similarities))
+    # with open(similarities_file + "_pretty", 'w') as file:
+    #     file.write(str(sorted_similarities))
+    with open(similarities_file + "_simplified", 'w') as file:
+        # file.write(str([value[2] for value in sorted_similarities]))
+        file.write("\n\n" + str(np.mean([value[2] for value in sorted_similarities])))
+        file.write("\n\n" + str(len(sorted_similarities)))
+        file.write("\n\n" + str(len(list(filter(lambda x: x >= 0.75, [value[2] for value in sorted_similarities])))))
     return sorted_similarities
 
 
 if __name__ == '__main__':
-    liked_recipes = get_liked_recipes()
+    liked_recipes = list(range(1000))  # get_liked_recipes()
     recipe_matrix = get_recipe_matrix()
+
+    # pairs = [(num1, num2) for num1 in range(200, len(recipe_matrix)) for num2 in range(1000)]
+    # start = time.time()
+    # get_similarity_between_candidates_pairs(pairs, recipe_matrix)
+    # print(time.time() - start)
+
     B = 4
     R = 6
-    num_buckets_per_band = 25000000
 
     discounted_recipes = get_discounted_recipes()
-    most_similar_recipes_to_liked_recipes = get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R, num_buckets_per_band)
+    most_similar_recipes_to_liked_recipes = get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R)
