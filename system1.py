@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Tuple, List
 
 from whoosh import index
@@ -27,6 +28,7 @@ def get_discounted_recipes() -> List[Tuple[str, float]]:
         offers = json.load(file)
     with open("full_format_recipes.json") as file:
         recipes = json.load(file)
+    similarity_metric = "relative"
 
     map_recipe_to_ingredients = {}
     for i, recipe in enumerate(recipes):
@@ -38,17 +40,30 @@ def get_discounted_recipes() -> List[Tuple[str, float]]:
 
     map_recipe_to_jaccard = {}
 
+    if similarity_metric == "jaccard":
+        calculate_similarity = get_jaccard_similarity
+    elif similarity_metric == "relative":
+        calculate_similarity = get_relative_similarity
+    else:
+        calculate_similarity = None
+        print("Error: similarity_metric must be either \"jaccard\" or \"relative\"")
+        exit(1)
+
+    start_time = time.time()
     with ix.searcher() as searcher:
         query = QueryParser("ingredients", ix.schema).parse("(" + ") OR (".join(offers) + ")")
         results = searcher.search(query, limit=None)
+        print("Time to search through index: " + str(time.time() - start_time))
 
         for result in results:
             recipe = result["title"]
             ingredients = map_recipe_to_ingredients[int(recipe)]
-            map_recipe_to_jaccard[recipe] = get_relative_similarity(ingredients, offers)
-    # return map_recipe_to_jaccard
+            map_recipe_to_jaccard[recipe] = calculate_similarity(ingredients, offers)
     result = sorted(map_recipe_to_jaccard, key=map_recipe_to_jaccard.get, reverse=True)
-    return [(recipe, map_recipe_to_jaccard[recipe]) for recipe in result]
+    result_as_tuple = [(recipe, map_recipe_to_jaccard[recipe]) for recipe in result]
+
+    print("Total time to find discounted recipes: " + str(time.time() - start_time))
+    return result_as_tuple
 
 
 if __name__ == '__main__':

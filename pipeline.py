@@ -96,7 +96,8 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
 
 def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R) -> List[Tuple]:
     similarities_file = "generated/similarities_" + str(B) + "_" + str(R) + "_range1000"
-    if path.isfile(similarities_file):
+    # if path.isfile(similarities_file):
+    if False:
         with open(similarities_file, 'rb') as file:
             similarities = pickle.load(file)
     else:
@@ -128,8 +129,8 @@ if __name__ == '__main__':
     # get_similarity_between_candidates_pairs(pairs, recipe_matrix)
     # print(time.time() - start)
 
-    B = 4
-    R = 6
+    B = 6
+    R = 4
 
     discounted_recipes = get_discounted_recipes()
     most_similar_recipes_to_liked_recipes = get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R)
