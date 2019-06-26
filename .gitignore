@@ -8,6 +8,8 @@
 *.pyc
 
 generated/
+recipe_ratings.csv
+ratings.csv
 
 # User-specific stuff
 .idea/**/workspace.xml
