@@ -137,10 +137,11 @@ if __name__ == '__main__':
     num_recommendations = -1
     num_users = 50
     user_id = num_users + 1
+    num_test_recipes_per_user = 0
 
     discounted_recipes = get_discounted_recipes()
     most_similar_recipes_to_liked_recipes = get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R)
-    recommended_recipes = get_recommendations(num_recommendations, num_users, user_id)
+    recommended_recipes = get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user)
 
     map_discounted_recipe_to_rating = defaultdict(lambda: 0)
     for recipe in discounted_recipes:

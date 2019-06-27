@@ -49,7 +49,7 @@ class MatrixFactorization(surprise.AlgoBase):
         #     top_n[i[1]].append((i[3], recipes.iloc[i[1]]))
         top_n = defaultdict(list)
         for i in recommendations:
-            top_n[i[1]].append((i[3], recipes.iloc[i[1]]))  # for now leave actual rating out. Some our empty
+            top_n[i[1]].append((i[3], recipes.iloc[i[1]]))  # for now leave actual rating out. Some are empty
         top_n = sorted(top_n.items(), key=lambda k: k[1], reverse=True)
         if n == -1:
             return top_n
@@ -76,28 +76,24 @@ def ask_user_input(unique_recipes, user_item_matrix, userid):
     return user_item_matrix
 
 
-def get_recommendations(num_recommendations, num_users, user_id):
+def get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user):
     recipes = pd.read_csv('epi_r.csv')
     unique_recipes = recipes.title
     print('Preparing User Item Matrix ..... ')
-    # user_recipe = create_data(recipes)
-
-
     user_recipe = pd.read_csv('recipe_ratings.csv', skiprows=1, names=['userid', 'recipeid', 'rating'])
-    # not needed anymore... user_recipe = user_recipe.loc[user_recipe['userid'] < user_id]
 
     train_validation = pd.DataFrame()
     test = pd.DataFrame()
     user_recipe_user_id = user_recipe.loc[:, "userid"]
 
     for i in range(1, num_users + 1):
-        train_validation_indices = user_recipe_user_id[user_recipe_user_id == i].index[1:]
+        train_validation_indices = user_recipe_user_id[user_recipe_user_id == i].index[num_test_recipes_per_user:]
         train_validation = train_validation.append(user_recipe.loc[train_validation_indices, :])
-        test_index = user_recipe_user_id[user_recipe_user_id == i].index[0]
+        test_index = user_recipe_user_id[user_recipe_user_id == i].index[:num_test_recipes_per_user, ]
         test = test.append(user_recipe.loc[test_index, :])
 
     train_validation = ask_user_input(unique_recipes, train_validation, user_id)
-    train_validation.reset_index(drop=True)
+    train_validation = train_validation.reset_index(drop=True)
     # Prepare the data to perform matrix factorization
     reader = surprise.Reader(rating_scale=(0.5, 5))
     data = surprise.Dataset.load_from_df(train_validation, reader)
@@ -122,32 +118,34 @@ def get_recommendations(num_recommendations, num_users, user_id):
     # k-fold cross validation to find the best model and compute the recommendation
     recommendation_per_fold = defaultdict(list)
     print('\n User model created. Performing 10-fold CV and finding the optimal model for recommendations .....')
-    kSplit = surprise.model_selection.KFold(n_splits=3, shuffle=True)
-    for train, test in kSplit.split(data):
-        map_id_to_raw = defaultdict(list)
-
+    kSplit = surprise.model_selection.KFold(n_splits=5, shuffle=True)
+    for train, validation in kSplit.split(data):
         bestModel.fit(train)
-        predictions = bestModel.test(test)
+        predictions = bestModel.test(validation)
         accuracy = surprise.accuracy.rmse(predictions, verbose=True)
         recommendation_per_fold[accuracy].append(bestModel)
 
     best_fold = min(recommendation_per_fold)
     print('Found best model with RMSE: ', best_fold)
 
+    print('Evaluate if the model is correct with use of the test set .....')
+    test_results = []
+    for i in range(0, len(test)):
+        result = recommendation_per_fold[best_fold][0].predict(test.iloc[i]['userid'], test.iloc[i]['recipeid'], r_ui=test.iloc[i]['rating'])
+        test_results.append((test.iloc[i]['userid'], test.iloc[i]['recipeid'], test.iloc[i]['rating'], result.est))
+    # TODO: apply the DCG on the above dataset
+
     print('Use the model to calculate the top ', num_recommendations, ' recommendations for the user ......')
     estimated_ratings = []
-    user_id_indices = train_validation['userid'] == user_id
     best_fold_model = recommendation_per_fold[best_fold][0]
-    train_validation_rating = train_validation['rating']
-    train_validation_recipeid = train_validation['recipeid']
     for i in range(len(unique_recipes)):  # Estimates a rating for each recipe for the user
-        estimated_rating = best_fold_model.predict(user_id, i, r_ui=train_validation_rating.loc[user_id_indices & (train_validation_recipeid == i)])
-        estimated_ratings.append((estimated_rating.uid, estimated_rating.iid, estimated_rating.r_ui, estimated_rating.est))
+        estimated_rating = best_fold_model.predict(user_id, i)
+        estimated_ratings.append((user_id, i, estimated_rating.r_ui, estimated_rating.est))
 
     recommendations = bestModel.top_n_recommendations(num_recommendations, estimated_ratings, unique_recipes)
     print('Recommendation for the user:\n')
-    # for i in recommendations:
-    #     print(i[1][0])
+    for i in recommendations:
+        print(i[1][0])
 
     '''
     print('YOUR TOP RECOMMENDATIONS IN DESCENDING ORDER')
@@ -183,5 +181,10 @@ def get_recommendations(num_recommendations, num_users, user_id):
 
 
 if __name__ == '__main__':
-    result = get_recommendations(5, 50, 51)
+    num_recommendations = 5
+    num_users = 50
+    user_id = num_users + 1
+    num_test_recipes_per_user = 5  # Maybe I'll remove this later on. It's only for the experiments of the DCG
+
+    result = get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user)
     print("Finished")
