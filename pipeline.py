@@ -1,5 +1,6 @@
 import pickle
 import time
+from collections import defaultdict
 from multiprocessing import Process, Manager
 from os import path
 import numpy as np
@@ -8,6 +9,7 @@ from typing import List, Tuple
 import math
 import pandas as pd
 
+from matrix_factorization import get_recommendations
 from system1 import get_discounted_recipes
 from system2 import get_candidate_similar_recipes
 
@@ -121,7 +123,7 @@ def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R
 
 
 if __name__ == '__main__':
-    liked_recipes = list(range(1000))  # get_liked_recipes()
+    liked_recipes = list(range(10))  # get_liked_recipes()
     recipe_matrix = get_recipe_matrix()
 
     # pairs = [(num1, num2) for num1 in range(200, len(recipe_matrix)) for num2 in range(1000)]
@@ -132,5 +134,37 @@ if __name__ == '__main__':
     B = 6
     R = 4
 
+    num_recommendations = -1
+    num_users = 50
+    user_id = num_users + 1
+
     discounted_recipes = get_discounted_recipes()
     most_similar_recipes_to_liked_recipes = get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R)
+    recommended_recipes = get_recommendations(num_recommendations, num_users, user_id)
+
+    map_discounted_recipe_to_rating = defaultdict(lambda: 0)
+    for recipe in discounted_recipes:
+        map_discounted_recipe_to_rating[int(recipe[0])] = recipe[1]
+
+    map_most_similar_to_liked_recipe_to_rating = defaultdict(lambda: 0)
+    for recipe in most_similar_recipes_to_liked_recipes:
+        map_most_similar_to_liked_recipe_to_rating[recipe[1]] = recipe[2]
+
+    map_recommended_recipe_to_rating = defaultdict(lambda: 0)
+    for recipe in recommended_recipes:
+        map_recommended_recipe_to_rating[recipe[0]] = (recipe[1][0][0] - 1) / 4
+
+    scores = []
+    for i in range(recipe_matrix.shape[1]):
+        discounted_score = map_discounted_recipe_to_rating[i]
+        similarity_score = map_most_similar_to_liked_recipe_to_rating[i]
+        recommended_score = map_recommended_recipe_to_rating[i]
+        ratio = min(1, num_users / 10000)
+        scores.append((i, discounted_score * ((1 - ratio) * similarity_score + ratio * recommended_score)))
+    scores.sort(key=lambda k: k[1], reverse=True)
+
+    titles = pd.read_csv("epi_r.csv", usecols=["title"])
+
+    title_to_rating = [(titles.loc[score[0], "title"], score[1]) for score in scores]
+
+    print(title_to_rating)
