@@ -2,16 +2,15 @@ import pickle
 import time
 from collections import defaultdict
 from multiprocessing import Process, Manager
-from os import path
-import numpy as np
 from typing import List, Tuple
 
 import math
+import numpy as np
 import pandas as pd
 
-from matrix_factorization import get_recommendations
 from system1 import get_discounted_recipes
 from system2 import get_candidate_similar_recipes
+from system3 import get_recommendations
 
 
 def jaccard_similarity(liked_recipe, candidate_recipe) -> float:
@@ -157,11 +156,11 @@ if __name__ == '__main__':
 
     scores = []
     for i in range(recipe_matrix.shape[1]):
-        discounted_score = map_discounted_recipe_to_rating[i]
-        similarity_score = map_most_similar_to_liked_recipe_to_rating[i]
-        recommended_score = map_recommended_recipe_to_rating[i]
+        discounted_score = map_discounted_recipe_to_rating[i]  # system 1
+        content_based_score = map_most_similar_to_liked_recipe_to_rating[i]  # system 2
+        collaborative_score = map_recommended_recipe_to_rating[i]  # system 3
         ratio = min(1, num_users / 10000)
-        scores.append((i, discounted_score * ((1 - ratio) * similarity_score + ratio * recommended_score)))
+        scores.append((i, discounted_score * ((1 - ratio) * content_based_score + ratio * collaborative_score)))
     scores.sort(key=lambda k: k[1], reverse=True)
 
     titles = pd.read_csv("epi_r.csv", usecols=["title"])
