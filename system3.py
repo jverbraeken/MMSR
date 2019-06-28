@@ -73,10 +73,6 @@ def ask_user_input(unique_recipes, user_item_matrix, userid):
         user_item_matrix = user_item_matrix.append(pd.DataFrame([[userid, i, answer]], columns=['userid', 'recipeid', 'rating']))
     return user_item_matrix
 
-<<<<<<< HEAD:system3.py
-
-def get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user):
-=======
 def evaluate_relevance(data):
     print('Evaluating the relevance of the ranking on test data .....')
     data = data.sort_values(by=['userid', 'predicted'], ascending=False)
@@ -162,7 +158,6 @@ def print_recommended_images(recommendations):
             temp_img.show()
 
 def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per_user):
->>>>>>> added ndcg and evaluation metrics:matrix_factorization.py
     recipes = pd.read_csv('epi_r.csv')
     unique_recipes = recipes.title
     print('Preparing User Item Matrix ..... ')
@@ -186,28 +181,10 @@ def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per
 
     # Find optimal parameters based on the Grid Search
     # Due to the long runtime, we have already added the optimal parameters for this model
-<<<<<<< HEAD:system3.py
-    '''
-    print('Performing the Grid Search .....')
-    gridsearch = surprise.model_selection.GridSearchCV(MatrixFactorization, 
-                    param_grid={'learning_rate':[0.0005, 0.05], 'num_iterations':[200, 1000],
-                        'num_factors':[10, 100]},measures=['rmse'], cv=5)
-    gridsearch.fit(data)
-    
-    best_params = gridsearch.best_params['rmse']
-    bestModel = MatrixFactorization(learning_rate=best_params['learning_rate'],
-                    num_iterations=best_params['num_iterations'],num_factors=best_params['num_factors'])
-    print('Best RSME with GridSearch: ',gridsearch.best_score['rmse'])
-    print('Best parameters with GridSearch: ', best_params)
-    '''
-    bestModel = MatrixFactorization(learning_rate=0.0005,
-                                    num_iterations=200, num_factors=10)
-=======
     # bestModel = perform_Gridsearch(data)
 
     bestModel = MatrixFactorization(learning_rate=0.001,
                                     num_iterations=200, num_factors=4)
->>>>>>> added ndcg and evaluation metrics:matrix_factorization.py
     # k-fold cross validation to find the best model and compute the recommendation
     recommendation_per_fold = defaultdict(list)
     print('\n User model created. Performing 5-fold CV to find the optimal model for recommendations .....')
@@ -225,12 +202,6 @@ def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per
     test_results = pd.DataFrame(columns=['userid', 'recipeid', 'actual', 'predicted'])
     for i in range(0, len(test)):
         result = recommendation_per_fold[best_fold][0].predict(test.iloc[i]['userid'], test.iloc[i]['recipeid'], r_ui=test.iloc[i]['rating'])
-<<<<<<< HEAD:system3.py
-        test_results.append((test.iloc[i]['userid'], test.iloc[i]['recipeid'], test.iloc[i]['rating'], result.est))
-    # TODO: apply the DCG on the above dataset
-
-    print('Use the model to calculate the top ', num_recommendations, ' recommendations for the user ......')
-=======
         test_results = test_results.append(
             pd.DataFrame([[test.iloc[i]['userid'], test.iloc[i]['recipeid'], test.iloc[i]['rating'], result.est]], 
             columns=['userid', 'recipeid', 'actual', 'predicted']))
@@ -238,7 +209,6 @@ def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per
     evaluate_relevance(test_results)
 
     # Recommend on the newly added user
->>>>>>> added ndcg and evaluation metrics:matrix_factorization.py
     estimated_ratings = []
     best_fold_model = recommendation_per_fold[best_fold][0]
     for i in range(len(unique_recipes)):  # Estimates a rating for each recipe for the user
@@ -250,42 +220,7 @@ def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per
     for i in recommendations:
         print(i[1][0])
 
-<<<<<<< HEAD:system3.py
-    '''
-    print('YOUR TOP RECOMMENDATIONS IN DESCENDING ORDER')
-    # API credentials replaced with 'xxxxxx' due to privacy reasons. You can use your own 
-    # Google API credentials to run this part.
-    
-    gis = GoogleImagesSearch('xxxxxxx', 'xxxxxxxx')
-    for recommendation in recommendations:
-        for i in recommendation[1]:
-            print('Recipe: ', i[1], ' has estimated rating: ', i[0])
-            my_bytes_io = BytesIO()
-            gis.search({'q': i[1], 'num': 1})
-    
-    fnt = ImageFont.truetype('/Library/Fonts/Arial.ttf', 15)
-    for j in range(0, 1):
-        for i in recommendations[j]:
-            ranking = j + 1
-            rank = 'Rank ' + str(ranking)
-            my_bytes_io.seek(0)
-            # take raw image data
-            raw_image_data = gis.results()[j].get_raw_data()
-            # writes raw image data to the object
-            gis.results()[j].copy_to(my_bytes_io, raw_image_data)
-            # go back to address 0 so PIL can read it from start to finish
-            my_bytes_io.seek(0)
-            temp_img = Image.open(my_bytes_io)
-            d = ImageDraw.Draw(temp_img)
-            d.text((10,10), rank, font=fnt, fill=(255, 255, 0))
-            d.text((10, 40), i[1], font=fnt, fill=(255, 255, 0))
-            temp_img.show()
-    '''
-    return recommendations
-
-=======
     #print_recommended_images(recommendations)
->>>>>>> added ndcg and evaluation metrics:matrix_factorization.py
 
 if __name__ == '__main__':
     num_recommendations = 5
@@ -293,9 +228,5 @@ if __name__ == '__main__':
     user_id = num_users + 1
     num_test_recipes_per_user = 5  # Maybe I'll remove this later on. It's only for the experiments of the DCG
 
-<<<<<<< HEAD:system3.py
-    result = get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user)
-=======
     result = get_recommendations(num_recommendations, num_users, user_id, num_recipes_per_user)
->>>>>>> added ndcg and evaluation metrics:matrix_factorization.py
     print("Finished")
