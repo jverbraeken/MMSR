@@ -128,7 +128,7 @@ def perform_Gridsearch(data):
     print('Best parameters with GridSearch: ', best_params)
     return bestModel
 
-# Prints images corresponding to a recipe
+# Prints images corresponding to a recipe. This is an optional feature to run.
 def print_recommended_images(recommendations):
     # API credentials replaced with 'xxxxxx' due to privacy reasons. You can use your own 
     # Google API credentials to run this part.
