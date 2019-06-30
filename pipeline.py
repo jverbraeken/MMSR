@@ -2,7 +2,8 @@ import pickle
 import time
 from collections import defaultdict
 from multiprocessing import Process, Manager
-from typing import List, Tuple
+from os import path
+from typing import List, Tuple, Dict
 
 import math
 import numpy as np
@@ -13,7 +14,10 @@ from system2 import get_candidate_similar_recipes
 from system3 import get_recommendations
 
 
-def jaccard_similarity(liked_recipe, candidate_recipe) -> float:
+def jaccard_similarity(liked_recipe: List[int], candidate_recipe: List[int]) -> float:
+    """
+    Calculate the Jaccard similarity between the ingredients in the liked_recipe and the candidate recipe
+    """
     A = 0
     B = 0
     AB = 0
@@ -27,20 +31,20 @@ def jaccard_similarity(liked_recipe, candidate_recipe) -> float:
     return float(AB) / (A + B - AB)
 
 
-def filter_recipes(recipes, newdata2, i, L):
+def map_candidate_to_jaccard(recipes: List[Tuple[int, int]], recipe_matrix: pd.DataFrame, i: int, L: Dict) -> None:
+    """
+    Calculate Jaccard similarity between all candidate pairs
+    """
     L[i] = list(map(
-        lambda liked_recipe_candidate: (liked_recipe_candidate[0], liked_recipe_candidate[1], jaccard_similarity(newdata2[:, liked_recipe_candidate[0]], newdata2[:, liked_recipe_candidate[1]]))
+        lambda liked_recipe_candidate: (liked_recipe_candidate[0], liked_recipe_candidate[1], jaccard_similarity(recipe_matrix[:, liked_recipe_candidate[0]], recipe_matrix[:, liked_recipe_candidate[1]]))
         , recipes))
     print("Finished thread: " + str(i))
 
 
-def get_liked_recipes() -> List[int]:
-    with open("liked_recipes.json") as file:
-        liked_recipes = list(range(1000))  # set(json.load(file))
-    return liked_recipes
-
-
-def get_recipe_matrix() -> List[List[int]]:
+def get_recipe_matrix() -> pd.DataFrame:
+    """
+    Returns a 0/1 matrix that maps recipes to ingredients
+    """
     data = pd.read_csv("epi_r.csv")
     data = data.drop(["title",
                       "rating",
@@ -61,8 +65,12 @@ def get_recipe_matrix() -> List[List[int]]:
     return recipe_matrix
 
 
-def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tuple], recipe_matrix: List[List[int]]) -> List[Tuple[int, int, float]]:
-    if len(candidate_similar_recipes) > 500000:
+def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tuple], recipe_matrix: pd.DataFrame) -> List[Tuple[int, int, float]]:
+    """
+    Returns a list of tuples[candidate_pair[0], candidate_pair[1], jaccard_similarity]
+    """
+    THRES_USE_THREADING = 500000
+    if len(candidate_similar_recipes) > THRES_USE_THREADING:
         with Manager() as manager:
             L = manager.dict()
             processes = []
@@ -70,13 +78,13 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
             NUM_PROCESSES = 2
             for i in range(NUM_PROCESSES):
                 print("Starting process: " + str(i))
-                p = Process(target=filter_recipes, args=(candidate_similar_recipes[
-                                                         math.floor((len(
-                                                             candidate_similar_recipes) / NUM_PROCESSES) * i):
-                                                         math.floor(
-                                                             (len(candidate_similar_recipes) / NUM_PROCESSES) * (
-                                                                     i + 1))],
-                                                         recipe_matrix, i, L))
+                p = Process(target=map_candidate_to_jaccard, args=(candidate_similar_recipes[
+                                                                   math.floor((len(
+                                                                       candidate_similar_recipes) / NUM_PROCESSES) * i):
+                                                                   math.floor(
+                                                                       (len(candidate_similar_recipes) / NUM_PROCESSES) * (
+                                                                               i + 1))],
+                                                                   recipe_matrix, i, L))
                 processes.append(p)
                 p.start()
 
@@ -95,10 +103,12 @@ def get_similarity_between_candidates_pairs(candidate_similar_recipes: List[Tupl
     return values
 
 
-def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R) -> List[Tuple]:
+def get_most_similar_recipes_to_liked_recipes(recipe_matrix: pd.DataFrame, liked_recipes: List[int], B: int, R: int) -> List[Tuple]:
+    """
+    Returns a list of tuples[candidate_pair[0], candidate_pair[1], jaccard_similarity], sorted descendingly on similarity
+    """
     similarities_file = "generated/similarities_" + str(B) + "_" + str(R) + "_range1000"
-    # if path.isfile(similarities_file):
-    if False:
+    if path.isfile(similarities_file):
         with open(similarities_file, 'rb') as file:
             similarities = pickle.load(file)
     else:
@@ -114,7 +124,7 @@ def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R
     # with open(similarities_file + "_pretty", 'w') as file:
     #     file.write(str(sorted_similarities))
     with open(similarities_file + "_simplified", 'w') as file:
-        # file.write(str([value[2] for value in sorted_similarities]))
+        file.write(str([value[2] for value in sorted_similarities]))
         file.write("\n\n" + str(np.mean([value[2] for value in sorted_similarities])))
         file.write("\n\n" + str(len(sorted_similarities)))
         file.write("\n\n" + str(len(list(filter(lambda x: x >= 0.75, [value[2] for value in sorted_similarities])))))
@@ -122,13 +132,8 @@ def get_most_similar_recipes_to_liked_recipes(recipe_matrix, liked_recipes, B, R
 
 
 if __name__ == '__main__':
-    liked_recipes = list(range(10))  # get_liked_recipes()
+    liked_recipes = list(range(10))
     recipe_matrix = get_recipe_matrix()
-
-    # pairs = [(num1, num2) for num1 in range(200, len(recipe_matrix)) for num2 in range(1000)]
-    # start = time.time()
-    # get_similarity_between_candidates_pairs(pairs, recipe_matrix)
-    # print(time.time() - start)
 
     B = 6
     R = 4
@@ -167,4 +172,7 @@ if __name__ == '__main__':
 
     title_to_rating = [(titles.loc[score[0], "title"], score[1]) for score in scores]
 
-    print(title_to_rating)
+    print(title_to_rating[:, 10])
+
+    with open("results.txt", 'w') as file:
+        file.write(str(title_to_rating))

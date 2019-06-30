@@ -6,7 +6,10 @@ from whoosh import index
 from whoosh.qparser import QueryParser
 
 
-def get_jaccard_similarity(list1: List, list2: List) -> float:
+def get_jaccard_similarity(list1: List[str], list2: List[str]) -> float:
+    """
+    Returns the Jaccard similarity between the two lists, where list2 elements are checked for inclusion in list1 elements
+    """
     count = 0
     for elem1 in list1:
         if any(elem2 in elem1 for elem2 in list2):
@@ -14,7 +17,10 @@ def get_jaccard_similarity(list1: List, list2: List) -> float:
     return float(count) / (len(list1) + len(list2) - count)
 
 
-def get_relative_similarity(list1: List, list2: List) -> float:
+def get_relative_similarity(list1: List[str], list2: List[str]) -> float:
+    """
+    Returns the fraction of elements in list2 that occur in list1, where list2 elements are checked for inclusion in list1 elements
+    """
     count = 0
     for elem1 in list1:
         for elem2 in list2:
@@ -24,6 +30,9 @@ def get_relative_similarity(list1: List, list2: List) -> float:
 
 
 def get_discounted_recipes() -> List[Tuple[str, float]]:
+    """
+    Returns a list of recipes of which at least one ingredient is discounted and also the fraction of ingredients that is discounted
+    """
     with open("offers.json") as file:
         offers = json.load(file)
     with open("full_format_recipes.json") as file:

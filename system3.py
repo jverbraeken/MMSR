@@ -1,25 +1,31 @@
 from collections import defaultdict
+from io import BytesIO
 from itertools import product
+
 import math
 import numpy as np
 import pandas as pd
 import surprise
-from google_images_search import GoogleImagesSearch
-from IPython.display import display
+# from google_images_search import GoogleImagesSearch
 from tqdm import tqdm
+
 
 # Algorithm
 class MatrixFactorization(surprise.AlgoBase):
 
-    # Initialization of the parameters
     def __init__(self, learning_rate, num_iterations, num_factors, **kwargs):
+        """
+        Initialization of the parameters
+        """
         super().__init__(**kwargs)
         self.alpha = learning_rate
         self.num_iterations = num_iterations
         self.num_factors = num_factors
 
-    # Builds model based on the training set
     def fit(self, train):
+        """
+        Builds model based on the training set
+        """
         P = np.random.rand(train.n_users, self.num_factors).astype('float64')  # initialize the model
         Q = np.random.rand(train.n_items, self.num_factors).astype('float64')
         for _ in tqdm(range(self.num_iterations)):  # gradient descent
@@ -33,8 +39,10 @@ class MatrixFactorization(surprise.AlgoBase):
         self.Q = Q
         self.trainset = train
 
-    # Predicts item ratings on unseen data
-    def estimate(self, u, i):
+    def estimate(self, u: int, i: int) -> float:
+        """
+        Predicts item ratings on unseen data
+        """
         if self.trainset.knows_user(u) and self.trainset.knows_item(i):
             checkNan = np.dot(self.P[u], self.Q[i])
             if np.isnan(checkNan):
@@ -44,9 +52,11 @@ class MatrixFactorization(surprise.AlgoBase):
         else:  # if unknown return general average
             return self.trainset.global_mean
 
-    # Orders the recommendations for top n items based on the item ratings
     @staticmethod
     def top_n_recommendations(n, recommendations, recipes):
+        """
+        Orders the recommendations for top n items based on the item ratings
+        """
         print('Use the model to calculate the top ', n, ' recommendations for the newly added user ......')
         top_n = defaultdict(list)
         for i in recommendations:
@@ -58,8 +68,10 @@ class MatrixFactorization(surprise.AlgoBase):
             return top_n[:n]
 
 
-# Create mock data of users with ratings for recipes
-def create_data():
+def create_data() -> pd.DataFrame:
+    """
+    Create mock data of users with ratings for recipes
+    """
     userid = [i for i in range(0, 50)]
     # recipeid = data.index
     recipeid = [i for i in range(0, 100)]
@@ -67,16 +79,22 @@ def create_data():
     new_dataframe['rating'] = np.random.randint(-2, 5, size=(len(list(product(userid, recipeid)))))
     return new_dataframe
 
-# Asks a new user to give a rating for items in order to create a user model
-def ask_user_input(unique_recipes, user_item_matrix, userid):
+
+def ask_user_input(unique_recipes, user_item_matrix, userid: int):
+    """
+    Asks a new user to give a rating for items in order to create a user model
+    """
     print('Please give a rating from 0.5 - 5 for the following 10 recipes: INSERT [RATING], THEN PRESS [ENTER]')
     for i in range(0, 10):
         answer = input(unique_recipes[i] + ': ')
         user_item_matrix = user_item_matrix.append(pd.DataFrame([[userid, i, answer]], columns=['userid', 'recipeid', 'rating']))
     return user_item_matrix
 
-# Evaluate the relevance of the recommendation with the use of NDCG
+
 def evaluate_relevance(data):
+    """
+    Evaluate the relevance of the recommendation with the use of NDCG
+    """
     print('Evaluating the relevance of the ranking on test data .....')
     data = data.sort_values(by=['userid', 'predicted'], ascending=False)
     dcg = {5: [], 10: [], 15: [], 20: []}
@@ -91,11 +109,11 @@ def evaluate_relevance(data):
         sub_ndcg = 0
         for rank in p:
             user_predicted_subset = user_predicted_set.reset_index(drop=True)
-            user_predicted_subset = user_predicted_subset.loc[:rank-1,]
-        
+            user_predicted_subset = user_predicted_subset.loc[:rank - 1, ]
+
             user_actual_subset = user_actual_set.sort_values(by=['userid', 'actual'], ascending=False)
             user_actual_subset = user_actual_subset.reset_index(drop=True)
-            user_actual_subset = user_actual_subset.loc[:rank-1,]
+            user_actual_subset = user_actual_subset.loc[:rank - 1, ]
 
             sub_dcg = calculate_DCG(user_predicted_subset, 'predicted')
             sub_ndcg = calculate_DCG(user_actual_subset, 'actual')
@@ -103,33 +121,42 @@ def evaluate_relevance(data):
             idcg[rank].append(sub_ndcg)
 
     for rank in p:
-        print('NDCG for rank ', rank, ': ', np.mean(dcg[rank])/np.mean(idcg[rank]))
+        print('NDCG for rank ', rank, ': ', np.mean(dcg[rank]) / np.mean(idcg[rank]))
 
-# Calculates the DCG score of recommendation list
+
 def calculate_DCG(data, column_name):
+    """
+    Calculates the DCG score of recommendation list
+    """
     dcg = 0
-    for i in range(1, len(data)+1): 
-        relevance = 0 if ((data.iloc[i-1]['actual'] < 4) or (data.index.isin([i-1]).any() == False)) else 1
-        dcg += relevance / (math.log2(i+1))
+    for i in range(1, len(data) + 1):
+        relevance = 0 if ((data.iloc[i - 1]['actual'] < 4) or (data.index.isin([i - 1]).any() == False)) else 1
+        dcg += relevance / (math.log2(i + 1))
     return dcg
 
-# Find optimal parameter values for a model with use of a Grid Search
+
 def perform_Gridsearch(data):
+    """
+    Find optimal parameter values for a model with use of a Grid Search
+    """
     print('Performing the Grid Search .....')
-    gridsearch = surprise.model_selection.GridSearchCV(MatrixFactorization, 
-                    param_grid={'learning_rate':[0.001, 0.05, 0.01, 0,1], 'num_iterations':[i+100 for i in range(0,1000)],
-                        'num_factors':[i for i in range(2,10)]},measures=['rmse'], cv=5)
+    gridsearch = surprise.model_selection.GridSearchCV(MatrixFactorization,
+                                                       param_grid={'learning_rate': [0.001, 0.05, 0.01, 0, 1], 'num_iterations': [i + 100 for i in range(0, 1000)],
+                                                                   'num_factors': [i for i in range(2, 10)]}, measures=['rmse'], cv=5)
     gridsearch.fit(data)
 
     best_params = gridsearch.best_params['rmse']
     bestModel = MatrixFactorization(learning_rate=best_params['learning_rate'],
-                    num_iterations=best_params['num_iterations'],num_factors=best_params['num_factors'])
-    print('Best RSME with GridSearch: ',gridsearch.best_score['rmse'])
+                                    num_iterations=best_params['num_iterations'], num_factors=best_params['num_factors'])
+    print('Best RSME with GridSearch: ', gridsearch.best_score['rmse'])
     print('Best parameters with GridSearch: ', best_params)
     return bestModel
 
-# Prints images corresponding to a recipe. This is an optional feature to run.
+
 def print_recommended_images(recommendations):
+    """
+    Prints images corresponding to a recipe. This is an optional feature to run.
+    """
     # API credentials replaced with 'xxxxxx' due to privacy reasons. You can use your own 
     # Google API credentials to run this part.
     print('YOUR TOP RECOMMENDATIONS IN DESCENDING ORDER')
@@ -154,12 +181,15 @@ def print_recommended_images(recommendations):
             my_bytes_io.seek(0)
             temp_img = Image.open(my_bytes_io)
             d = ImageDraw.Draw(temp_img)
-            d.text((10,10), rank, font=fnt, fill=(255, 255, 0))
+            d.text((10, 10), rank, font=fnt, fill=(255, 255, 0))
             d.text((10, 40), i[1], font=fnt, fill=(255, 255, 0))
             temp_img.show()
 
-# Main code of System 3
-def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per_user):
+
+def get_recommendations(num_recommendations: int, num_users: int, user_id: int, num_test_recipes_per_user: int):
+    """
+    Main code of System 3
+    """
     recipes = pd.read_csv('epi_r.csv')
     unique_recipes = recipes.title
     print('Preparing User Item Matrix ..... ')
@@ -208,8 +238,8 @@ def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per
     for i in range(0, len(test)):
         result = recommendation_per_fold[best_fold][0].predict(test.iloc[i]['userid'], test.iloc[i]['recipeid'], r_ui=test.iloc[i]['rating'])
         test_results = test_results.append(
-            pd.DataFrame([[test.iloc[i]['userid'], test.iloc[i]['recipeid'], test.iloc[i]['rating'], result.est]], 
-            columns=['userid', 'recipeid', 'actual', 'predicted']))
+            pd.DataFrame([[test.iloc[i]['userid'], test.iloc[i]['recipeid'], test.iloc[i]['rating'], result.est]],
+                         columns=['userid', 'recipeid', 'actual', 'predicted']))
     test_results = test_results.reset_index(drop=True)
     evaluate_relevance(test_results)
 
@@ -225,12 +255,15 @@ def get_recommendations(num_recommendations, num_users, user_id, num_recipes_per
     for i in recommendations:
         print(i[1][0])
 
-    #print_recommended_images(recommendations) # Un-comment if you would like to see corresponding images with the recipe
+    # print_recommended_images(recommendations) # Un-comment if you would like to see corresponding images with the recipe
+
+    return recommendations
+
 
 if __name__ == '__main__':
-    num_recommendations = 5         # number of recommendations you would like to give
-    num_users = 50                  # number of users to consider in the training set
-    user_id = num_users + 1         # user ID of the newly added user
+    num_recommendations = 5  # number of recommendations you would like to give
+    num_users = 50  # number of users to consider in the training set
+    user_id = num_users + 1  # user ID of the newly added user
     num_test_recipes_per_user = 20  # number of recommended recipes to consider in the evaluation of test set
 
     get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user)
