@@ -251,9 +251,6 @@ def get_recommendations(num_recommendations: int, num_users: int, user_id: int, 
         estimated_ratings.append((user_id, i, estimated_rating.r_ui, estimated_rating.est))
 
     recommendations = bestModel.top_n_recommendations(num_recommendations, estimated_ratings, unique_recipes)
-    print('Recommendation for the user:\n')
-    for i in recommendations:
-        print(i[1][0])
 
     # print_recommended_images(recommendations) # Un-comment if you would like to see corresponding images with the recipe
 
@@ -266,5 +263,7 @@ if __name__ == '__main__':
     user_id = num_users + 1  # user ID of the newly added user
     num_test_recipes_per_user = 20  # number of recommended recipes to consider in the evaluation of test set
 
-    get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user)
-    print("Finished")
+    recommendations = get_recommendations(num_recommendations, num_users, user_id, num_test_recipes_per_user)
+    print('Recommendation for the user:\n')
+    for i in recommendations:
+        print(i[1][0])

@@ -1,3 +1,4 @@
+import codecs
 import pickle
 import time
 from collections import defaultdict
@@ -172,7 +173,7 @@ if __name__ == '__main__':
 
     title_to_rating = [(titles.loc[score[0], "title"], score[1]) for score in scores]
 
-    print(title_to_rating[:, 10])
+    print(title_to_rating[:10])
 
-    with open("results.txt", 'w') as file:
-        file.write(str(title_to_rating))
+    with codecs.open("results.txt", 'w', "utf-8") as file:
+        file.write(str(title_to_rating).replace("), (", "),\n("))
